@@ -106,6 +106,24 @@ def create_scheduler(job: Callable[[], Awaitable[None]]) -> AsyncIOScheduler:
 что в логах постоянно вылетала одна и та же ошибка
 ![alt text](image.png)
 
+* Проблема: D данных city бывает null, а код делает item.city.name.strip() → AttributeError: 'NoneType' ... Это прямо ломает критерий “парсинг без падений”
 
+* Решение: Добавить проверку
+
+Вложение
+
+Код до:
+parser.py
+```python
+"city_name": item.city.name.strip(),
+```
+
+Код после:
+parser.py
+```python
+"city_name": item.city.name.strip() if item.city else None,
+```
+Теперь ошибка не возникает
+![alt text](image-1.png)
 
 ### Итог
