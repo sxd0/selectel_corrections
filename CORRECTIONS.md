@@ -72,13 +72,40 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/postgres
 Код до:
 >scheduler.py
 ```python
-
+def create_scheduler(job: Callable[[], Awaitable[None]]) -> AsyncIOScheduler:
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        job,
+        trigger="interval",
+        seconds=settings.parse_schedule_minutes,
+        coalesce=True,
+        max_instances=1,
+    )
+    return scheduler
 ```
 
 Код после:
 >scheduler.py
 ```python
-
+def create_scheduler(job: Callable[[], Awaitable[None]]) -> AsyncIOScheduler:
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        job,
+        trigger="interval",
+        minutes=settings.parse_schedule_minutes,
+        coalesce=True,
+        max_instances=1,
+    )
+    return scheduler
 ```
+Парсинг перестал лететь каждые 5 секунд
+
+### 4. Шаг 4: Исправление бага №4
+
+* Что сделал: Когда исправлял предыдущие баги, столкнулся с тем,
+что в логах постоянно вылетала одна и та же ошибка
+![alt text](image.png)
+
+
 
 ### Итог
