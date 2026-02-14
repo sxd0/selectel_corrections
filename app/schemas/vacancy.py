@@ -12,7 +12,7 @@ class VacancyBase(BaseModel):
     published_at: datetime
     is_remote_available: bool
     is_hot: bool
-    external_id: Optional[int] = None
+    external_id: int
 
 
 class VacancyCreate(VacancyBase):

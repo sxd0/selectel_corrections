@@ -104,7 +104,7 @@ def create_scheduler(job: Callable[[], Awaitable[None]]) -> AsyncIOScheduler:
 
 * Что сделал: Когда исправлял предыдущие баги, столкнулся с тем,
 что в логах постоянно вылетала одна и та же ошибка
-![alt text](image.png)
+![alt text](assets/3.png)
 
 * Проблема: В данных city бывает null, а код делает item.city.name.strip() → AttributeError: 'NoneType' ... Это прямо ломает критерий “парсинг без падений”
 
@@ -113,18 +113,18 @@ def create_scheduler(job: Callable[[], Awaitable[None]]) -> AsyncIOScheduler:
 Вложение
 
 Код до:
-parser.py
+>parser.py
 ```python
 "city_name": item.city.name.strip(),
 ```
 
 Код после:
-parser.py
+>parser.py
 ```python
 "city_name": item.city.name.strip() if item.city else None,
 ```
 Теперь ошибка не возникает
-![alt text](image-1.png)
+![alt text](assets/4.png)
 
 ### 5. Шаг 5: Исправление бага №5
 
@@ -140,7 +140,7 @@ parser.py
 Вложение
 
 Код до:
-parser.py
+>parser.py
 ```python
     try:
         client = httpx.AsyncClient(timeout=timeout)
@@ -150,7 +150,7 @@ parser.py
 ```
 
 Код после:
-parser.py
+>parser.py
 ```python
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -165,15 +165,15 @@ parser.py
 заметил, что названия не совпадают
 
 * Проблема: CRUD-функция работает с city_name, но эндпоинт принимает query-параметр city. В результате контракт API “кривой”: пользователь ожидает city_name, но его нет
-![alt text](image-2.png)
-![alt text](image-3.png)
+![alt text](assets/5.png)
+![alt text](assets/6.png)
 
 * Решение: Привести данные к консистентности
 
 Вложение
 
 Код до:
-vacancies.py
+>vacancies.py
 ```python
 @router.get("/", response_model=List[VacancyRead])
 async def list_vacancies_endpoint(
@@ -185,7 +185,7 @@ async def list_vacancies_endpoint(
 ```
 
 Код после:
-vacancies.py
+>vacancies.py
 ```python
 @router.get("/", response_model=List[VacancyRead])
 async def list_vacancies_endpoint(
@@ -209,7 +209,7 @@ async def list_vacancies_endpoint(
 Вложение
 
 Код до:
-vacancies.py
+>vacancies.py
 ```python
 @router.post("/", response_model=VacancyRead, status_code=status.HTTP_201_CREATED)
 async def create_vacancy_endpoint(
@@ -226,7 +226,7 @@ async def create_vacancy_endpoint(
 ```
 
 Код после:
-vacancies.py
+>vacancies.py
 ```python
 @router.post("/", response_model=VacancyRead, status_code=status.HTTP_201_CREATED)
 async def create_vacancy_endpoint(
@@ -242,10 +242,10 @@ async def create_vacancy_endpoint(
     return await create_vacancy(session, payload)
 ```
 Создание 1
-![alt text](image-4.png)
+![alt text](assets/7.png)
 
 Создание 2
-![alt text](image-5.png)
+![alt text](assets/8.png)
 
 Теперь контракт исправен и пользователи получают понятную ошибку
 
@@ -263,17 +263,44 @@ async def create_vacancy_endpoint(
 Вложение
 
 Код до:
-vacancy.py
+>vacancy.py
 ```python
+    external_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 ```
 
 Код после:
-vacancy.py
+>vacancy.py
 ```python
+    external_id: Mapped[int | None] = mapped_column(Integer, nullable=False)
+```
 
+Так как изменили модель алхимии нужно прогнать миграцию алембика
+![alt text](assets/9.png)
+
+Проверили db в контейнере
+![alt text](assets/10.png)
+
+Осталось изменить Pydantic схему
+`
+>schemas/vacansy.py
+```python
+class VacancyBase(BaseModel):
+    title: str
+    timetable_mode_name: str
+    tag_name: str
+    city_name: Optional[str] = None
+    published_at: datetime
+    is_remote_available: bool
+    is_hot: bool
+    external_id: int
 ```
 
 
-
 ### Итог
+
+- Успешный старт без ошибок
+
+- Парсинг без падений
+
+- CRUD работает

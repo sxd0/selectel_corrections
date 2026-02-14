@@ -23,4 +23,4 @@ class Vacancy(Base):
         nullable=False,
         server_default=func.now(),
     )
-    external_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    external_id: Mapped[int | None] = mapped_column(Integer, nullable=False)
