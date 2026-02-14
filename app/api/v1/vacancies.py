@@ -26,10 +26,10 @@ async def get_session() -> AsyncSession:
 @router.get("/", response_model=List[VacancyRead])
 async def list_vacancies_endpoint(
     timetable_mode_name: Optional[str] = None,
-    city: Optional[str] = None,
+    city_name: Optional[str] = None,
     session: AsyncSession = Depends(get_session),
 ) -> List[VacancyRead]:
-    return await list_vacancies(session, timetable_mode_name, city)
+    return await list_vacancies(session, timetable_mode_name, city_name)
 
 
 @router.get("/{vacancy_id}", response_model=VacancyRead)

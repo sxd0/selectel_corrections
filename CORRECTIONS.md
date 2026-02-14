@@ -159,6 +159,45 @@ parser.py
 ```
 Теперь клиент закрывается гарантированно
 
+### 6. Шаг 6: Исправление бага №6
+
+* Что сделал: Когда тестировал ручку GET /api/v1/vacancies/
+заметил, что названия не совпадают
+
+* Проблема: CRUD-функция работает с city_name, но эндпоинт принимает query-параметр city. В результате контракт API “кривой”: пользователь ожидает city_name, но его нет
+![alt text](image-2.png)
+![alt text](image-3.png)
+
+* Решение: Привести данные к консистентности
+
+Вложение
+
+Код до:
+vacancies.py
+```python
+@router.get("/", response_model=List[VacancyRead])
+async def list_vacancies_endpoint(
+    timetable_mode_name: Optional[str] = None,
+    city: Optional[str] = None,
+    session: AsyncSession = Depends(get_session),
+) -> List[VacancyRead]:
+    return await list_vacancies(session, timetable_mode_name, city)
+```
+
+Код после:
+vacancies.py
+```python
+@router.get("/", response_model=List[VacancyRead])
+async def list_vacancies_endpoint(
+    timetable_mode_name: Optional[str] = None,
+    city_name: Optional[str] = None,
+    session: AsyncSession = Depends(get_session),
+) -> List[VacancyRead]:
+    return await list_vacancies(session, timetable_mode_name, city_name)
+```
+Теперь контракт надежен
+
+
 
 
 ### Итог
