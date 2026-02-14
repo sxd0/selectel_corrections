@@ -197,6 +197,82 @@ async def list_vacancies_endpoint(
 ```
 Теперь контракт надежен
 
+### 7. Шаг 7: Исправление бага №7
+
+* Что сделал: Когда решал прошлый баг, в том же роутере заметил,
+что ручка POST /vacansies возвращает не ошибку а JSONResponse
+
+* Проблема: POST /vacancies объявлен с response_model=VacancyRead, но при дубле возвращает JSONResponse с {"detail": ...} и статусом 200. Это ломает ожидаемую логику CRUD и портит контракт.
+
+* Решение: Возвращать ошибку
+
+Вложение
+
+Код до:
+vacancies.py
+```python
+@router.post("/", response_model=VacancyRead, status_code=status.HTTP_201_CREATED)
+async def create_vacancy_endpoint(
+    payload: VacancyCreate, session: AsyncSession = Depends(get_session)
+) -> VacancyRead:
+    if payload.external_id is not None:
+        existing = await get_vacancy_by_external_id(session, payload.external_id)
+        if existing:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"detail": "Vacancy with external_id already exists"},
+            )
+    return await create_vacancy(session, payload)
+```
+
+Код после:
+vacancies.py
+```python
+@router.post("/", response_model=VacancyRead, status_code=status.HTTP_201_CREATED)
+async def create_vacancy_endpoint(
+    payload: VacancyCreate, session: AsyncSession = Depends(get_session)
+) -> VacancyRead:
+    if payload.external_id is not None:
+        existing = await get_vacancy_by_external_id(session, payload.external_id)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Vacancy with this external_id already exists",
+            )
+    return await create_vacancy(session, payload)
+```
+Создание 1
+![alt text](image-4.png)
+
+Создание 2
+![alt text](image-5.png)
+
+Теперь контракт исправен и пользователи получают понятную ошибку
+
+### 8. Шаг 8: Исправление бага №8
+
+* Что сделал: Когда тестировал баг 7 начал изучать поля в схеме
+и заметил, что external_id допускает null
+
+* Проблема: external_id — ключ для “связывания” с внешними данными. Сейчас он nullable=True и в модели, и в миграции, из-за чего:
+- можно создать записи без external_id;
+- уникальность по external_id становится “дырявой”
+
+* Решение: external_id должен быть обязательным
+
+Вложение
+
+Код до:
+vacancy.py
+```python
+
+```
+
+Код после:
+vacancy.py
+```python
+
+```
 
 
 
